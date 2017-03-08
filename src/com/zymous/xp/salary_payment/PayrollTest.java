@@ -83,5 +83,69 @@ public class PayrollTest {
 		assert(e);
 		assert("Bob" == e.GetName());
 	}
+	void TestChangeHourlyTransaction() {
+		System.err.println("TestChangeHourlyTransaction");
+		int empId = 3;
+		AddCommissionedEmployee t = new AddCommissionedEmployee(empId,"Lance","Home",2500,3.2);
+		t.Execute();
+		ChangeHourlyTransaction cht = new ChangeHourlyTransaction(empId,27.52);
+		cht.Execute();
+		Employee e = MemberStatic.GpayrollDatabase.GetEmployee(empId);
+		assert(e);
+		PaymentClassification pc = e.GetClassification();
+		assert(pc);
+		HourlyClassification hc = (HourlyClassification)pc;
+		assert(hc);
+		assertEquals(27.52, hc.GetRate(), .0001);
+		PaymentSchedule ps = e.GetSchedule();
+		WeeklySchedule ws = (WeeklySchedule)ps;
+		assert(ws);
+	}
+	void TestChangeMemberTransaction() {
+		System.err.println("TestChangeMemberTransaction");
+		int empId = 2;
+		int memberId = 7734;
+		AddHourlyEmployee t = new AddHourlyEmployee(empId, "Bill", "Home", 15.25);
+		t.Execute();
+		ChangeMemberTransaction cmt = new ChangeMemberTransaction(empId, memberId, 99.42);
+		cmt.Execute();
+		Employee e = MemberStatic.GpayrollDatabase.GetEmployee(empId);
+		assert(e);
+		Affiliation af = e.GetAffiliation();
+		assert(af);
+		UnionAffiliation uf = (UnionAffiliation)af;
+		assert(uf);
+		assertEquals(99.42, uf.GetDues(), .001);
+		Employee member = MemberStatic.GpayrollDatabase.GetUnionMember(memberId);
+		assert(member);
+		assert(e == member);
+	}
+	public void TestPaySingleSalariedEmployee() {
+		System.err.println("TestPaySingleSalariedEmployee");
+		int empId = 1;
+		AddSalariedEmployee t = new AddSalariedEmployee(empId, "Bob", "Home", 1000.00);
+		t.Execute();
+		Date payDate = new Date(1000*1438725620l);
+		PaydayTransaction pt = new PaydayTransaction(payDate);
+		pt.Execute();
+		Paycheck pc = pt.GetPaycheck(empId);
+		assert(pc);
+		assert(pc.GetPayDate() == payDate);
+		assertEquals(1000.00, pc.GetGrossPay(), .001);
+		assert("Hold" == pc.GetField("Disposition"));
+		assertEquals(0.0, pc.GetDeductions(), .001);
+		assertEquals(1000.00, pc.GetNetPay(), .001);	
+	}
+	public void TestPaySingleSalariedEmployeeOnWrongDate() {
+		System.err.println("TestPaySingleSalariedEmployeeWrongDate");
+		int empId = 1;
+		AddSalariedEmployee t = new AddSalariedEmployee(empId, "Bob", "Home", 1000.00);
+		t.Execute();
+		Date payDate = new Date(1000*1438725620l);
+		PayDayTransaction pt = new PayDayTransaction(payDate);
+		pt.Execute();
+		Paycheck pc = pt.GetPaycheck(empId);
+		assert(pc == 0);
+	}
 
 }
