@@ -203,4 +203,30 @@ public class PayrollTest {
 		Paycheck pc = pc.GetPaycheck(empId);
 		assert pc == 0;
 	}
+	public void TestPaySingleHourlyEmployeeTwoTimeCards() {
+		System.err.println("TestPaySingleHourlyEmployeeTwoTimeCards");
+		int empId = 2;
+		AddHourlyEmployee t = new AddHourlyEmployee(empId, "Bill", "Home", 15.25);
+		t.Execute();
+		Date payDate = new Date(1000*1438725620l);
+		TimeCardTransaction tc = new TimeCardTransaction(payDate, 2.0, empId);
+		tc.Execute();
+		TimeCardTransaction tc2 = new TimeCardTransaction(new Date(1000*1435725620l), 5.0, empId);
+		tc2.Execute();
+		PaydayTransaction pt = new PaydayTransaction(payDate);
+		pt.Execute();
+		ValidatePaycheck(pt, empId, payDate, 7*15.25);
+	}
+	public void TestPaySingleHourlyEmployeeWithTimeCardsSpanningTwoPayPeriods() {
+		System.out.println("TestPaySingleHourlyEmployeeWithTimeCardsSpanningTwoPayPeriods");
+		int empId = 2;
+		AddHourlyEmployee t = new AddHourlyEmployee(empId, "Bill", "Home", 15.25);
+		t.Execute();
+		Date payDate = new Date(1000*1438735620l);
+		Date dateInPreviousPayPeriod = new Date(1000*1438725620l);
+		
+		TimeCardTransaction tc = new TimeCardTransaction(payDate, 2.0, empId);
+		tc.Execute();
+		
+	}
 }
