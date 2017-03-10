@@ -227,6 +227,85 @@ public class PayrollTest {
 		
 		TimeCardTransaction tc = new TimeCardTransaction(payDate, 2.0, empId);
 		tc.Execute();
-		
+		TimeCardTransaction tc2 = new TimeCardTransaction(dateInPreviousPayPeriod, 5.0, empId);
+		tc2.Execute();
+		PaydayTransaction pt = new PaydayTransaction(payDate);
+		pt.Execute();
+		ValidatePaycheck(pt, empId, payDate, 2*15.25);
+	}
+	public void TestSalariedUnionMemberDues() {
+		System.err.println("TestSalariedUnionMemberDues");
+		int empId = 1;
+		AddSalariedEmployee t = new AddSalariedEmployee(empId, "Bob", "Home", 1000.00);
+		t.Execute();
+		int memberId = 7734;
+		ChangeMemberTransaction cmt = new ChangeMemberTransaction(empId, memberId, 9.42);
+		cmt.Execute();
+		Calendar calendar = Calendar.getInstance();
+		calendar.set(2010, 11, 30);
+		Date payDate = calendar.getTime();
+		PaydayTransaction pt = new PaydatTransaction(payDate);
+		pt.Execute();
+		ValidatePaycheck(pt, empId, payDate, 1000.00 );
+	}
+	public void TestHourlyUnionMemberServiceCharge() {
+		System.err.println("TestHourlyUnionMemberServiceCharge");
+		int empId = 1;
+		AddHourlyEmployee t = new AddHourlyEmployee(empId, "Bill", "Home", 15.24);
+		t.Execute();
+		int memberId = 7734;
+		ChangeMemberTransaction cmt = new ChangeMemberTransaction(empId, memberId, 9.42);
+		cmt.Execute();
+		Calendar calendar = Calendar.getInstance();
+		calendar.set(2001,11,9);
+		Date payDate = calendar.getTime();
+		ServiceChargeTransaction sct = new ServiceChargeTransaction(memberId, payDate, 19.42);
+		sct.Execute();
+		TimeCardTransaction tct = new TimeCardTransaction(payDate,8.0,empId);
+		tct.Execute();
+		PaydayTransaction pt = new PaydayTransaction(payDate);
+		pt.Execute();
+		Paycheck pc = pt.GetPaycheck(empId);
+		assert(pc);
+		assert(pc.GetPayPeriodEndDate() == payDate);
+		assert equals(8*15.24,pc.GetGrossPay(), .001);
+		assert "Hold" == pc.GetField("Disposition");
+		assert equals(9.42+19.42, pc.GetDeductions(), .001);
+		assert equals((8*15.24) -(9.42+19.42), pc.GetNetPay(), .001);
+	}
+	public void TestServiceChargesSpanningMultiplePayPeriods() {
+		System.err.println("TestServiceChargesSpanningMultiplePayPeriods");
+		int empId = 1;
+		AddHourlyEmployee t = new AddHourlyEmployee(empId, "Bill", "Home", 15.24);
+		t.Execute();
+		int memberId = 7734;
+		ChangeMemberTransaction cmt = new ChangeMemberTransaction(empId, memberId, 9.42);
+		cmt.Execute();
+		Calendar calendarEarly = Calendar.getInstance();
+		calendarEarly.set(2001, 11, 2);
+		Calendar calendarNow = Calendar.getInstance();
+		calendarNow.set(2001,11,9);
+		Calendar calendarLate = Calendar.getInstance();
+		calendarLate.set(2001,11,16);
+		Date earlyDate = calendarEarly.getTime();//previous Friday
+		Date payDate = calendarNow.getTime();
+		Date lateDate = calendarLate.getTime(); //next Friday
+		ServiceChargeTransaction sct = new ServiceChargeTransaction(memberId, payDate, 19.42);
+		sct.Execute();
+		ServiceChargeTransaction sctEarly = new ServiceChargeTransaction(memberId, earlyDate, 100.00);
+		sctEarly.Execute();
+		ServiceChargeTransaction sctLate = new ServiceChargeTransaction(memberId, lateDate, 200.00);
+		sctLate.Execute();
+		TimeCardTransaction tct = new TimeCardTransaction(payDate, 8.0, empId);
+		tct.Execute();
+		PaydayTransaction pt = new PaydayTransaction(payDate);
+		pt.Execute();
+		Paycheck pc = pt.GetPaycheck(empId);
+		assert pc;
+		assert pc.GetPayPeriodEndDate() == payDate;
+		assert equals(8*15.24, pc.GetGrossPay(), .001);
+		assert "Hold" == pc.GetField("Disposition");
+		assert equals(9.42 + 19.42, pc.GetDeductions(), .001);
+		assert equals((8*15.24)-(9.42+19.42), pc.GetNetPay(), .001);
 	}
 }
